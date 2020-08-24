@@ -9,20 +9,16 @@ public class CarMove : MonoBehaviour
     float3 distances;        // sensorDistances
     float moveSpeed;         // velocity
     float rotationSpeed;     // rotationSpeed
-    //int2 values;             // randomValues
     LayerMask mask;
-    int notMoveCount;
-    NeuralNetwork network;
+    public NeuralNetwork network;
     public float fitness { get; private set; }
+    public bool isChecked { get; private set; }
+    public bool isParent;
+    float distanceMoved;
+    int totalFrameCount;
+    float totalTime;        // totalFrameCount / 120
 
-    private int CompareFitness(CarMove c1, CarMove c2)
-    {
-        if (c1.fitness > c2.fitness)
-            return 1;
-        if (c1.fitness < c2.fitness)
-            return -1;
-        return 0;
-    }
+    
 
     public void SetValues(float3 d, float m, float r, int c, int n, LayerMask l, float2 randomValues)
     {
@@ -32,12 +28,13 @@ public class CarMove : MonoBehaviour
         mask = l;
         network = new NeuralNetwork(c, n);
         network.SetRandomValues(randomValues.x, randomValues.y);
+        isChecked = false;
+        RestartValues();
     }
 
     void Update()
     {
-        KeyboardMove();
-        Debug.Log("");
+        
         GetRayValues();
     }
 
@@ -50,6 +47,34 @@ public class CarMove : MonoBehaviour
         Matrix control = network.GetAction(f, l, r);
         if (Move(control.values[0, 0], control.values[1, 0]))
             gameObject.SetActive(false);
+        else
+        {
+            distanceMoved += control.values[0, 0];
+            totalFrameCount++;
+            totalTime = totalFrameCount / 60.0f;
+            if(totalTime >= 10)
+            {
+                if (totalTime > 100)
+                    Debug.Log("Large");
+                if(distanceMoved / totalTime <= 5)
+                    gameObject.SetActive(false);
+            }
+
+        }
+    }
+
+    public void CalculateFitness()
+    {
+        fitness = distanceMoved;
+        isChecked = true;
+    }
+
+    public void RestartValues()
+    {
+        totalFrameCount = 0;
+        distanceMoved = 0;
+        totalTime = 0;
+        isParent = false;
     }
 
     bool Move(float m, float r)
@@ -57,14 +82,6 @@ public class CarMove : MonoBehaviour
         if (float.IsNaN(m))
             return true;
 
-        if (m <= .05f || m > 1)
-            notMoveCount++;
-        else
-            notMoveCount = 0;
-
-        if (notMoveCount >= 10)
-            return true;
-        Debug.Log(m);
         gameObject.transform.Translate(Vector3.forward * moveSpeed * m);
         if (r >= -1 && r <= 1)
         {
@@ -95,16 +112,13 @@ public class CarMove : MonoBehaviour
         return t;
     }
 
-    void KeyboardMove()
+    public void SetAsChild(CarMove c1, CarMove c2, bool b) 
     {
-        if (Input.GetKey(KeyCode.UpArrow))
-        {
-            gameObject.transform.Translate(Vector3.forward * moveSpeed);
-            if (Input.GetKey(KeyCode.LeftArrow))
-                gameObject.transform.rotation = Quaternion.Euler(0, gameObject.transform.rotation.eulerAngles.y - rotationSpeed, 0);
-            else if (Input.GetKey(KeyCode.RightArrow))
-                gameObject.transform.rotation = Quaternion.Euler(0, gameObject.transform.rotation.eulerAngles.y + rotationSpeed, 0);
-        }
+        isChecked = false;
+        network = c1.network;
+        if(c1 == c2 && !b)
+            return;
+        network.BreedNeural(c2.network, b);
     }
 
     private void OnTriggerEnter(Collider other)

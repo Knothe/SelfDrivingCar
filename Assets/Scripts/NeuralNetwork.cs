@@ -32,7 +32,6 @@ public class NeuralNetwork
         }
     }
 
-    
     public void SetRandomValues(float min, float max)
     {
         foreach (Matrix m in matrices)
@@ -105,9 +104,23 @@ public class NeuralNetwork
         MultiplyNeurons(temp, n + 1);
     }
 
-    public void BreedNeural(NeuralNetwork n1, NeuralNetwork n2)
+    public void BreedNeural(NeuralNetwork n1, bool mod)
     {
-
+        float m = UnityEngine.Random.Range(-1, 1);
+        int n = neuronas / 10;
+        for (int i = 0; i < matrices.Length; i++)
+        {
+            for(int j = 0; j < matrices[i].x; j++)
+            {
+                for(int k = 0; k < matrices[i].y; k++)
+                {
+                    if (UnityEngine.Random.Range(0, 2) == 0)
+                        matrices[i].values[j, k] = n1.matrices[i].values[j, k];
+                    if (mod && UnityEngine.Random.Range(0, neuronas) <= n)
+                        matrices[i].values[j, k] += m;
+                }
+            }
+        }
     }
 
     public void Print()
