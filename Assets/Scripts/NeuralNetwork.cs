@@ -15,6 +15,8 @@ public class NeuralNetwork
     public NeuralNetwork(int c, int n) // capas y neuronas
     {
         //matrices = new List<Matrix>();
+        neuronas = n;
+        capas = c;
         matrices = new Matrix[c + 1];
         int prev = 3;
         int cur;
@@ -74,7 +76,7 @@ public class NeuralNetwork
                 ApplyFunctionTemp();
         }
         temp.values[0, 0] = Sigmoid(temp.values[0,0]);
-        temp.values[1, 0] = TanH(temp.values[1, 0]);
+        temp.values[1, 0] = (float)Math.Tanh(temp.values[1,0]);
         return temp;
     }
 
@@ -82,18 +84,15 @@ public class NeuralNetwork
     {
         for (int i = 0; i < temp.x; i++)
             for (int j = 0; j < temp.y; j++)
-                temp.values[i, j] = TanH(temp.values[i, j]);
+                temp.values[i, j] = (float)Math.Tanh(temp.values[i, j]);
     }
 
     float Sigmoid(float v)
     {
-        float k = (float)Math.Exp(v);
-        return k / (1 + k);
-    }
-
-    float TanH(float f)
-    {
-        return (float)(Math.Sinh(f) / Math.Cosh(f));
+        float k = 1.0f / (1.0f + (float)Math.Exp(-v));
+        if (float.IsInfinity(k))
+            return 1;
+        return k;
     }
 
     void MultiplyNeurons(Matrix m, int n)
@@ -104,10 +103,8 @@ public class NeuralNetwork
         MultiplyNeurons(temp, n + 1);
     }
 
-    public void BreedNeural(NeuralNetwork n1, bool mod)
+    public void BreedNeural(NeuralNetwork n1, NeuralNetwork n2)
     {
-        float m = UnityEngine.Random.Range(-1, 1);
-        int n = neuronas / 10;
         for (int i = 0; i < matrices.Length; i++)
         {
             for(int j = 0; j < matrices[i].x; j++)
@@ -116,10 +113,26 @@ public class NeuralNetwork
                 {
                     if (UnityEngine.Random.Range(0, 2) == 0)
                         matrices[i].values[j, k] = n1.matrices[i].values[j, k];
-                    if (mod && UnityEngine.Random.Range(0, neuronas) <= n)
-                        matrices[i].values[j, k] += m;
+                    else
+                        matrices[i].values[j, k] = n2.matrices[i].values[j, k];
                 }
             }
+        }
+    }
+
+    public void Mutate()
+    {
+        int nPoints, rColumn, rRow;
+        for(int i = 0; i < matrices.Length; i++)
+        {
+            nPoints = UnityEngine.Random.Range(1, (matrices[i].x * matrices[i].y) / 5);
+            for(int j = 0; j < nPoints; j++)
+            {
+                rColumn = UnityEngine.Random.Range(0, matrices[i].y);
+                rRow = UnityEngine.Random.Range(0, matrices[i].x);
+                matrices[i].values[rRow, rColumn] = Mathf.Clamp(matrices[i].values[rRow, rColumn], -1, 1);
+            }
+
         }
     }
 

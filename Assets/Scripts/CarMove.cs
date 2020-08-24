@@ -17,6 +17,7 @@ public class CarMove : MonoBehaviour
     float distanceMoved;
     int totalFrameCount;
     float totalTime;        // totalFrameCount / 120
+    public GameObject cam;
 
     
 
@@ -34,7 +35,6 @@ public class CarMove : MonoBehaviour
 
     void Update()
     {
-        
         GetRayValues();
     }
 
@@ -54,9 +54,7 @@ public class CarMove : MonoBehaviour
             totalTime = totalFrameCount / 60.0f;
             if(totalTime >= 10)
             {
-                if (totalTime > 100)
-                    Debug.Log("Large");
-                if(distanceMoved / totalTime <= 5)
+                if (distanceMoved / totalTime <= 5)
                     gameObject.SetActive(false);
             }
 
@@ -65,7 +63,7 @@ public class CarMove : MonoBehaviour
 
     public void CalculateFitness()
     {
-        fitness = distanceMoved;
+        fitness = distanceMoved + (distanceMoved / totalTime);
         isChecked = true;
     }
 
@@ -74,7 +72,6 @@ public class CarMove : MonoBehaviour
         totalFrameCount = 0;
         distanceMoved = 0;
         totalTime = 0;
-        isParent = false;
     }
 
     bool Move(float m, float r)
@@ -115,10 +112,11 @@ public class CarMove : MonoBehaviour
     public void SetAsChild(CarMove c1, CarMove c2, bool b) 
     {
         isChecked = false;
-        network = c1.network;
         if(c1 == c2 && !b)
             return;
-        network.BreedNeural(c2.network, b);
+        network.BreedNeural(c1.network, c2.network);
+        if (b)
+            network.Mutate();
     }
 
     private void OnTriggerEnter(Collider other)

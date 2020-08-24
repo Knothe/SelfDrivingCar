@@ -28,40 +28,73 @@ public class NeuralManager : MonoBehaviour
     public LayerMask mask;
     public GameObject carPrefab;
     Transform startPosition;
+    public Color childColor;
+    public Color parentColor;
 
     List<CarMove> carList;
+    List<GameObject> cameras;
+    int currentCamera;
+
     int generations;
     void Start()
     {
+        currentCamera = 0;
         generations = 0;
         carList = new List<CarMove>();
+        cameras = new List<GameObject>();
         startPosition = carPrefab.transform;
+        CarMove temp;
         for(int i = 0; i < poblacion; i++)
         {
             GameObject g = GameObject.Instantiate(carPrefab);
+            g.name = "Car(" + i + ")";
             g.SetActive(true);
-            carList.Add(g.GetComponent<CarMove>());
-            g.GetComponent<CarMove>().SetValues(sensorDistances, velocity, rotationSpeed, capas, neuronas, mask, randomValues);
+            temp = g.GetComponent<CarMove>();
+            carList.Add(temp);
+            temp.SetValues(sensorDistances, velocity, rotationSpeed, capas, neuronas, mask, randomValues);
+            g.GetComponent<Renderer>().material.color = childColor;
+            cameras.Add(temp.cam);
         }
         if(bestNeurons + worstNeurons >= poblacion)
         {
             bestNeurons = poblacion / 3;
             worstNeurons = poblacion / 4;
         }
+        cameras[currentCamera].SetActive(true);
     }
 
     void Update()
     {
-        foreach(CarMove c in carList)
+        if (Input.GetKeyDown(KeyCode.RightArrow))
+            ChangeCamera(1);
+        else if (Input.GetKeyDown(KeyCode.LeftArrow))
+            ChangeCamera(-1);
+
+        foreach (CarMove c in carList)
         {
             if (c.gameObject.activeInHierarchy)
                 return;
         }
-        generations++;
-        Debug.Log(generations);
-        PrepareNextGeneration();
-        RestartAllCars();
+        NextGeneration();
+    }
 
+    void ChangeCamera(int c)
+    {
+        for(int i = currentCamera + c, t = 0; t < cameras.Count; i += c, t++)
+        {
+            if (i == cameras.Count)
+                i = 0;
+            else if (i < 0)
+                i = cameras.Count - 1;
+
+            if (cameras[i].transform.parent.gameObject.activeInHierarchy)
+            {
+                cameras[i].SetActive(true);
+                cameras[currentCamera].SetActive(false);
+                currentCamera = i;
+                return;
+            }
+        }
     }
 
     void PrepareNextGeneration()
@@ -76,17 +109,20 @@ public class NeuralManager : MonoBehaviour
         {
             parents.Add(carList[i]);
             carList[i].isParent = true;
+            carList[i].gameObject.GetComponent<Renderer>().material.color = parentColor;
         }
         for(int i = 0; i < worstNeurons; i++)
         {
             parents.Add(carList[carList.Count - (1 + i)]);
             carList[carList.Count - (1 + i)].isParent = true;
+            carList[carList.Count - (1 + i)].gameObject.GetComponent<Renderer>().material.color = parentColor;
         }
         foreach (CarMove c in carList)
         {
             if (c.isParent)
                 continue;
             c.SetAsChild(parents[UnityEngine.Random.Range(0, parents.Count)], parents[UnityEngine.Random.Range(0, parents.Count)], UnityEngine.Random.Range(0, 1.0f) <= probMutacion);
+            c.gameObject.GetComponent<Renderer>().material.color = childColor;
         }
 
     }
@@ -103,16 +139,22 @@ public class NeuralManager : MonoBehaviour
     {
         foreach (CarMove c in carList)
         {
-            if (c.isChecked)
-            {
-                c.isParent = false;
-                continue;
-            }
+            c.RestartValues();
             c.gameObject.SetActive(true);
             c.gameObject.transform.position = startPosition.position;
             c.gameObject.transform.rotation = startPosition.rotation;
-            c.RestartValues();
+            c.isParent = false;
         }
+    }
+
+    public void NextGeneration()
+    {
+        foreach (CarMove c in carList)
+            c.gameObject.SetActive(false);
+        generations++;
+        Debug.Log(generations);
+        PrepareNextGeneration();
+        RestartAllCars();
     }
 
 }
