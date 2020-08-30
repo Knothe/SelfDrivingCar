@@ -19,18 +19,21 @@ public class CarMove : MonoBehaviour
     float totalTime;        // totalFrameCount / 120
     public GameObject cam;
 
-    
-
-    public void SetValues(float3 d, float m, float r, int c, int n, LayerMask l, float2 randomValues)
+    public void SetValues(float3 d, float m, float r, LayerMask l)
     {
+        isChecked = false;
+        RestartValues(); 
         distances = d;
         moveSpeed = m;
         rotationSpeed = r;
         mask = l;
+    }
+
+    public void SetValues(float3 d, float m, float r, int c, int n, LayerMask l, float2 randomValues)
+    {
         network = new NeuralNetwork(c, n);
         network.SetRandomValues(randomValues.x, randomValues.y);
-        isChecked = false;
-        RestartValues();
+        SetValues(d, m, r, l);
     }
 
     void Update()
@@ -72,6 +75,7 @@ public class CarMove : MonoBehaviour
         totalFrameCount = 0;
         distanceMoved = 0;
         totalTime = 0;
+        isChecked = false;
     }
 
     bool Move(float m, float r)
@@ -111,7 +115,6 @@ public class CarMove : MonoBehaviour
 
     public void SetAsChild(CarMove c1, CarMove c2, bool b) 
     {
-        isChecked = false;
         if(c1 == c2 && !b)
             return;
         network.BreedNeural(c1.network, c2.network);

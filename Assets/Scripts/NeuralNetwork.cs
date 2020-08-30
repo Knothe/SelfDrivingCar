@@ -8,7 +8,6 @@ public class NeuralNetwork
     int capas;
     int neuronas;
 
-    //List<Matrix> matrices;
     Matrix[] matrices;
     Matrix temp;
 
@@ -62,15 +61,12 @@ public class NeuralNetwork
         }
     }
 
-    public Matrix GetAction(float f, float l, float r)
-    {
+    public Matrix GetAction(float f, float l, float r) {
         temp = new Matrix(3, 1);
         temp.values[0, 0] = f;
         temp.values[1, 0] = l;
         temp.values[2, 0] = r;
-
-        for (int i = 0; i < matrices.Length; i++)
-        {
+        for (int i = 0; i < matrices.Length; i++) {
             temp = matrices[i] * temp;
             if(i != matrices.Length - 1)
                 ApplyFunctionTemp();
@@ -132,7 +128,24 @@ public class NeuralNetwork
                 rRow = UnityEngine.Random.Range(0, matrices[i].x);
                 matrices[i].values[rRow, rColumn] = Mathf.Clamp(matrices[i].values[rRow, rColumn], -1, 1);
             }
+        }
+    }
 
+    public MatrixSaveData GetSaveData()
+    {
+        return new MatrixSaveData(matrices, capas, neuronas);
+    }
+
+    public void SetValues(List<string> values)
+    {
+        int count = 0;
+        foreach (Matrix m in matrices)
+        {
+            for (int i = 0; i < m.x; i++)
+                for (int j = 0; j < m.y; j++, count++)
+                {
+                    m.values[i, j] = float.Parse(values[count]);
+                }
         }
     }
 

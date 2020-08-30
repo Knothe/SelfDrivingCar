@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class NeuralManager : MonoBehaviour
 {
@@ -30,6 +31,11 @@ public class NeuralManager : MonoBehaviour
     Transform startPosition;
     public Color childColor;
     public Color parentColor;
+    public bool loadCar;
+
+    [Header("Interface")]
+    public Text genNumber;
+    public Text carNumber;
 
     List<CarMove> carList;
     List<GameObject> cameras;
@@ -38,13 +44,38 @@ public class NeuralManager : MonoBehaviour
     int generations;
     void Start()
     {
-        currentCamera = 0;
+        if (!LoadFile())
+            LoadNew();
+    }
+
+    bool LoadFile()
+    {
+        if (!loadCar)
+            return false;
+
+        NeuralNetwork neuralTemp = JsonConnect.SetFromJson(capas, neuronas);
+        if (neuralTemp == null)
+            return false;
+
+        CarMove temp;
+        GameObject g = GameObject.Instantiate(carPrefab);
+        g.name = "Car";
+        g.SetActive(true);
+        temp = g.GetComponent<CarMove>();
+        temp.SetValues(sensorDistances, velocity, rotationSpeed, mask);
+        temp.network = neuralTemp;
+        g.GetComponent<Renderer>().material.color = childColor;
+        return true;
+    }
+
+    void LoadNew()
+    {
         generations = 0;
         carList = new List<CarMove>();
         cameras = new List<GameObject>();
         startPosition = carPrefab.transform;
         CarMove temp;
-        for(int i = 0; i < poblacion; i++)
+        for (int i = 0; i < poblacion; i++)
         {
             GameObject g = GameObject.Instantiate(carPrefab);
             g.name = "Car(" + i + ")";
@@ -55,16 +86,21 @@ public class NeuralManager : MonoBehaviour
             g.GetComponent<Renderer>().material.color = childColor;
             cameras.Add(temp.cam);
         }
-        if(bestNeurons + worstNeurons >= poblacion)
+        if (bestNeurons + worstNeurons >= poblacion)
         {
             bestNeurons = poblacion / 3;
             worstNeurons = poblacion / 4;
         }
         cameras[currentCamera].SetActive(true);
+        carNumber.text = currentCamera.ToString();
+        genNumber.text = currentCamera.ToString();
     }
 
     void Update()
     {
+        if (loadCar)
+            return;
+
         if (Input.GetKeyDown(KeyCode.RightArrow))
             ChangeCamera(1);
         else if (Input.GetKeyDown(KeyCode.LeftArrow))
@@ -80,7 +116,7 @@ public class NeuralManager : MonoBehaviour
 
     void ChangeCamera(int c)
     {
-        for(int i = currentCamera + c, t = 0; t < cameras.Count; i += c, t++)
+        for (int i = currentCamera + c, t = 0; t < cameras.Count; i += c, t++)
         {
             if (i == cameras.Count)
                 i = 0;
@@ -92,6 +128,7 @@ public class NeuralManager : MonoBehaviour
                 cameras[i].SetActive(true);
                 cameras[currentCamera].SetActive(false);
                 currentCamera = i;
+                carNumber.text = currentCamera.ToString();
                 return;
             }
         }
@@ -149,12 +186,19 @@ public class NeuralManager : MonoBehaviour
 
     public void NextGeneration()
     {
+        if (loadCar)
+            return;
+
         foreach (CarMove c in carList)
-            c.gameObject.SetActive(false);
+        c.gameObject.SetActive(false);
         generations++;
-        Debug.Log(generations);
+        genNumber.text = generations.ToString();
         PrepareNextGeneration();
         RestartAllCars();
     }
 
+    public void SaveCar()
+    {
+        JsonConnect.SaveToJson(carList[currentCamera].network.GetSaveData());
+    }
 }
